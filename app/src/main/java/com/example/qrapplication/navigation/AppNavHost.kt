@@ -18,6 +18,7 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.example.qrapplication.barcode.ActionHandler
 import com.example.qrapplication.data.ScanRepository
+import com.example.qrapplication.screens.generator.GeneratorScreen
 import com.example.qrapplication.screens.history.HistoryScreen
 import com.example.qrapplication.screens.scanner.ScannerScreen
 
@@ -38,6 +39,11 @@ fun AppNavHost() {
             composable(NavigationItem.Scanner.route) {
                 ScannerScreen(
                     repository = repository
+                )
+            }
+            composable(NavigationItem.Generator.route) {
+                GeneratorScreen(
+                    onNavigateBack = { navController.popBackStack() }
                 )
             }
             composable(NavigationItem.History.route) {
@@ -63,6 +69,7 @@ private fun BottomNavigationBar(navController: NavHostController) {
 
     val items = listOf(
         NavigationItem.Scanner,
+        NavigationItem.Generator,
         NavigationItem.History
     )
 

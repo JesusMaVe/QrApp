@@ -8,6 +8,7 @@ import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import com.example.qrapplication.model.ScanRecord
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
@@ -34,9 +35,26 @@ class ScanRepository(context: Context) {
             val currentList = runCatching {
                 Json.decodeFromString<List<ScanRecord>>(currentJson)
             }.getOrDefault(emptyList())
-            val updatedList = listOf(record) + currentList
+
+            val existingIndex = currentList.indexOfFirst { it.content == record.content }
+            val updatedList = if (existingIndex >= 0) {
+                val existing = currentList[existingIndex]
+                val updated = existing.copy(timestamp = System.currentTimeMillis())
+                currentList.toMutableList().apply {
+                    removeAt(existingIndex)
+                    add(0, updated)
+                }
+            } else {
+                listOf(record) + currentList
+            }
+
             preferences[historyKey] = Json.encodeToString(updatedList)
         }
+    }
+
+    suspend fun findByContent(content: String): ScanRecord? {
+        val currentList = scans.first()
+        return currentList.find { it.content == content }
     }
 
     suspend fun deleteScan(id: String) {

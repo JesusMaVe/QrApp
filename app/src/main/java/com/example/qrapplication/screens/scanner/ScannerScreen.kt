@@ -33,6 +33,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.qrapplication.barcode.ActionHandler
 import com.example.qrapplication.barcode.BarcodeScannerViewModel
+import com.example.qrapplication.barcode.HapticManager
 import com.example.qrapplication.barcode.ScannerState
 import com.example.qrapplication.data.ScanRepository
 import com.example.qrapplication.model.ScanRecord
@@ -91,6 +92,7 @@ fun ScannerScreen(
                     onToggleFlash = { viewModel.toggleFlashlight() },
                     onBarcodeDetected = { barcode ->
                         viewModel.onBarcodeDetected(barcode)
+                        HapticManager.vibrate(context)
                     },
                     onDismissResult = {
                         viewModel.reset()

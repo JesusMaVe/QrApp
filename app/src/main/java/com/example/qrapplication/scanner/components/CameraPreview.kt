@@ -9,6 +9,8 @@ import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.camera.view.PreviewView
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -22,11 +24,20 @@ import java.util.concurrent.Executors
 @Composable
 fun CameraPreview(
     onBarcodeDetected: (com.google.mlkit.vision.barcode.common.Barcode) -> Unit,
+    isFlashlightOn: Boolean,
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
     val cameraExecutor = remember { Executors.newSingleThreadExecutor() }
+    
+    // Maintain a reference to the camera object
+    val camera = remember { mutableStateOf<androidx.camera.core.Camera?>(null) }
+
+    // Toggle flashlight whenever isFlashlightOn changes
+    LaunchedEffect(isFlashlightOn) {
+        camera.value?.cameraControl?.enableTorch(isFlashlightOn)
+    }
 
     AndroidView(
         factory = { ctx ->
@@ -43,7 +54,9 @@ fun CameraPreview(
                 previewView = previewView,
                 executor = cameraExecutor,
                 onBarcodeDetected = onBarcodeDetected
-            )
+            ) { boundCamera ->
+                camera.value = boundCamera
+            }
         }
     )
 }
@@ -53,7 +66,8 @@ private fun bindCamera(
     lifecycleOwner: androidx.lifecycle.LifecycleOwner,
     previewView: PreviewView,
     executor: ExecutorService,
-    onBarcodeDetected: (com.google.mlkit.vision.barcode.common.Barcode) -> Unit
+    onBarcodeDetected: (com.google.mlkit.vision.barcode.common.Barcode) -> Unit,
+    onCameraBound: (androidx.camera.core.Camera) -> Unit
 ) {
     val cameraProviderFuture = ProcessCameraProvider.getInstance(context)
 
@@ -79,12 +93,13 @@ private fun bindCamera(
 
         try {
             cameraProvider.unbindAll()
-            cameraProvider.bindToLifecycle(
+            val camera = cameraProvider.bindToLifecycle(
                 lifecycleOwner,
                 cameraSelector,
                 preview,
                 imageAnalysis
             )
+            onCameraBound(camera)
         } catch (e: Exception) {
             Log.e("CameraPreview", "Camera binding failed", e)
         }

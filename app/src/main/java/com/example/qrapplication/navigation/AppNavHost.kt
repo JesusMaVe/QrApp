@@ -8,18 +8,24 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import com.example.qrapplication.barcode.ActionHandler
+import com.example.qrapplication.data.ScanRepository
 import com.example.qrapplication.screens.history.HistoryScreen
 import com.example.qrapplication.screens.scanner.ScannerScreen
 
 @Composable
 fun AppNavHost() {
     val navController = rememberNavController()
+    val context = LocalContext.current
+    val repository = remember { ScanRepository(context) }
 
     Scaffold(
         bottomBar = { BottomNavigationBar(navController) }
@@ -31,13 +37,20 @@ fun AppNavHost() {
         ) {
             composable(NavigationItem.Scanner.route) {
                 ScannerScreen(
-                    onScanResult = { result ->
-                        // TODO: Handle scan result
-                    }
+                    repository = repository
                 )
             }
             composable(NavigationItem.History.route) {
-                HistoryScreen()
+                HistoryScreen(
+                    repository = repository,
+                    onScanTap = { content, contentType ->
+                        ActionHandler.execute(
+                            context,
+                            content,
+                            contentType
+                        )
+                    }
+                )
             }
         }
     }

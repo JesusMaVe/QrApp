@@ -20,6 +20,12 @@ class BarcodeScannerViewModel : ViewModel() {
     private val _state = MutableStateFlow<ScannerState>(ScannerState.Idle)
     val state: StateFlow<ScannerState> = _state.asStateFlow()
 
+    private val _isFlashlightOn = MutableStateFlow(false)
+    val isFlashlightOn: StateFlow<Boolean> = _isFlashlightOn.asStateFlow()
+
+    private val _lastFormat = MutableStateFlow(Barcode.FORMAT_QR_CODE)
+    val lastFormat: StateFlow<Int> = _lastFormat.asStateFlow()
+
     private var lastScanTimestamp = 0L
     private var lastScannedValue: String? = null
 
@@ -30,6 +36,7 @@ class BarcodeScannerViewModel : ViewModel() {
     }
 
     fun onBarcodeDetected(barcode: Barcode) {
+        _lastFormat.update { barcode.format }
         val now = System.currentTimeMillis()
         val rawValue = barcode.rawValue
 
@@ -42,6 +49,10 @@ class BarcodeScannerViewModel : ViewModel() {
 
         val contentType = ContentTypeDetector.detect(barcode)
         _state.update { ScannerState.Success(barcode, contentType) }
+    }
+
+    fun toggleFlashlight() {
+        _isFlashlightOn.update { !it }
     }
 
     fun reset() {

@@ -8,15 +8,21 @@ import android.os.VibratorManager
 
 object HapticManager {
 
-    fun vibrate(context: Context, durationMs: Long = 50) {
-        val vibrator = getVibrator(context)
-        if (vibrator == null || !vibrator.hasVibrator()) return
+    fun vibrate(context: Context, durationMs: Long = 50): Boolean {
+        return try {
+            val vibrator = getVibrator(context)
+            if (vibrator == null || !vibrator.hasVibrator()) return false
 
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            vibrator.vibrate(VibrationEffect.createOneShot(durationMs, VibrationEffect.DEFAULT_AMPLITUDE))
-        } else {
-            @Suppress("DEPRECATION")
-            vibrator.vibrate(durationMs)
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                vibrator.vibrate(VibrationEffect.createOneShot(durationMs, VibrationEffect.DEFAULT_AMPLITUDE))
+            } else {
+                @Suppress("DEPRECATION")
+                vibrator.vibrate(durationMs)
+            }
+            true
+        } catch (e: Exception) {
+            android.util.Log.w("HapticManager", "Vibration failed", e)
+            false
         }
     }
 

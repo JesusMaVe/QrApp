@@ -1,6 +1,7 @@
 package com.example.qrapplication.scanner.components
 
 import android.content.Context
+import android.graphics.RectF
 import android.util.Log
 import androidx.camera.core.CameraSelector
 import androidx.camera.core.ImageAnalysis
@@ -18,12 +19,13 @@ import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.ContextCompat
 import com.example.qrapplication.barcode.BarcodeAnalyzer
+import com.example.qrapplication.barcode.DetectedBarcode
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
 
 @Composable
 fun CameraPreview(
-    onBarcodeDetected: (com.google.mlkit.vision.barcode.common.Barcode) -> Unit,
+    onBarcodeDetected: (DetectedBarcode) -> Unit,
     isFlashlightOn: Boolean,
     modifier: Modifier = Modifier
 ) {
@@ -66,7 +68,7 @@ private fun bindCamera(
     lifecycleOwner: androidx.lifecycle.LifecycleOwner,
     previewView: PreviewView,
     executor: ExecutorService,
-    onBarcodeDetected: (com.google.mlkit.vision.barcode.common.Barcode) -> Unit,
+    onBarcodeDetected: (DetectedBarcode) -> Unit,
     onCameraBound: (androidx.camera.core.Camera) -> Unit
 ) {
     val cameraProviderFuture = ProcessCameraProvider.getInstance(context)
@@ -80,7 +82,9 @@ private fun bindCamera(
                 it.setSurfaceProvider(previewView.surfaceProvider)
             }
 
-        val analyzer = BarcodeAnalyzer(onBarcodeDetected)
+        val analyzer = BarcodeAnalyzer(
+            onBarcodeDetected = onBarcodeDetected
+        )
 
         val imageAnalysis = ImageAnalysis.Builder()
             .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)

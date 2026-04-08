@@ -19,23 +19,22 @@ Quick context for future agents working on this Android QR Scanner app.
 - Kotlinx Serialization 1.7.3
 - Accompanist Permissions 0.37.2
 
-**Note:** ZXing Core version (3.5.3) differs from embedded version (4.3.0) - this is intentional.
-
 ## Package Structure
 
 ```
 app/src/main/java/com/example/qrapplication/
-├── barcode/          # Scanning logic: Analyzer, ViewModel, ActionHandler
+├── barcode/          # Analyzer, ViewModel, ActionHandler, HapticManager
 ├── data/             # ScanRepository (DataStore persistence)
 ├── model/            # ScanRecord, ContentType
 ├── navigation/       # NavHost, NavigationItem (3 tabs)
 ├── qr/               # QrGenerator
-├── scanner/          # CameraPreview, ScanOverlay
+├── scanner/          # CameraPreview, ScanOverlay (UI tracker only)
 ├── screens/
 │   ├── generator/    # GeneratorScreen (create QR)
 │   ├── history/      # HistoryScreen, ViewModel
-│   └── scanner/      # ScannerScreen
-└── ui/               # Theme, EmptyState
+│   └── scanner/       # ScannerScreen
+├── ui/               # Theme, EmptyState
+└── util/             # TimeFormatter
 ```
 
 ## Architecture
@@ -43,14 +42,23 @@ app/src/main/java/com/example/qrapplication/
 - **Pattern:** MVVM with `StateFlow`
 - **State in Screens:** `viewModel.state.collectAsState()`
 - **Repository:** Passed from `AppNavHost` to screens via constructor
-- **No DI framework:** Manual DI via factory classes (e.g., `HistoryViewModelFactory`)
+- **No DI framework:** Manual DI via factory classes
+
+## Key Features
+
+- **QR Tracker:** Minimal tracking rectangle (green in frame, red outside)
+- **Burst Mode:** Toggle for rapid scanning (auto-save, 500ms debounce)
+- **Gallery Scan:** PickVisualMedia for scanning images from gallery
+- **QR Only:** Scanner detects QR, AZTEC, DataMatrix (not barcode formats)
+- **Bounding Box:** Only processes when QR is inside scan frame
 
 ## Common Patterns
 
-- **Haptic Feedback:** Use `HapticManager.vibrate(context)` after successful scan
-- **Avoid Duplicates:** `ScanRepository.saveScan()` checks content and updates timestamp
+- **Haptic Feedback:** `vibrate(context)` in ScannerScreen
+- **Avoid Duplicates:** `ScanRepository.saveScan()` updates timestamp
 - **Share:** Use `ShareManager.shareText(context, content)`
-- **Lifecycle:** Use `androidx.lifecycle.compose.LocalLifecycleOwner` (not deprecated version)
+- **Gallery Picker:** Use `rememberLauncherForActivityResult(ActivityResultContracts.PickVisualMedia())`
+- **Lifecycle:** Use `androidx.lifecycle.compose.LocalLifecycleOwner`
 
 ## Navigation
 
@@ -59,6 +67,15 @@ app/src/main/java/com/example/qrapplication/
 ## Quirks
 
 - Camera permission via Accompanist `rememberPermissionState`
-- Debounce in BarcodeScannerViewModel: 3 seconds between same scans
-- ScanOverlay animates frame size based on barcode format
-- Scanner uses coroutine scope with IO dispatcher for DataStore writes
+- Debounce: 3s normal, 500ms burst mode
+- Detection filter: only QR/AZTEC/DataMatrix formats
+- Scanner uses coroutine with IO dispatcher for DataStore
+- `trackingState: TrackingState` passed to ScanOverlay
+
+## Key Files
+
+- `barcode/BarcodeAnalyzer.kt` - ML Kit with corner points for tracking
+- `barcode/BarcodeScannerViewModel.kt` - State, burst mode, gallery result
+- `barcode/ImageAnalyzer.kt` - Static image processing for gallery
+- `scanner/components/ScanOverlay.kt` - Minimal: only tracker rectangle
+- `scanner/components/CameraPreview.kt` - CameraX FILL_CENTER scale

@@ -1,10 +1,18 @@
 package com.example.qrapplication.screens.history.components
 
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Email
 import androidx.compose.material.icons.filled.Phone
@@ -31,33 +39,64 @@ fun ScanListItem(
     onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val backgroundColor = ContentTypeColors.getBackgroundColor(record.parsedContentType)
+    val borderColor = ContentTypeColors.getBorderColor(record.parsedContentType)
+    val accentColor = ContentTypeColors.getAccentColor(record.parsedContentType)
+
     Surface(
         modifier = modifier
             .fillMaxWidth()
             .clickable(onClick = onClick),
-        color = MaterialTheme.colorScheme.surface
+        shape = RoundedCornerShape(8.dp),
+        color = backgroundColor,
+        border = BorderStroke(1.dp, borderColor),
+        shadowElevation = 2.dp
     ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(16.dp),
+                .padding(12.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
+            Box(
+                modifier = Modifier
+                    .width(3.dp)
+                    .height(40.dp)
+                    .background(
+                        color = accentColor,
+                        shape = RoundedCornerShape(2.dp)
+                    )
+            )
+
+            Spacer(modifier = Modifier.width(12.dp))
+
             Icon(
                 imageVector = getIconForType(record.parsedContentType),
                 contentDescription = record.parsedContentType.displayName,
-                tint = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.padding(end = 16.dp)
+                tint = accentColor,
+                modifier = Modifier.size(32.dp)
             )
 
+            Spacer(modifier = Modifier.width(12.dp))
+
             Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = record.content,
-                    style = MaterialTheme.typography.bodyMedium,
-                    maxLines = 2,
-                    overflow = TextOverflow.Ellipsis,
-                    color = MaterialTheme.colorScheme.onSurface
-                )
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = record.content,
+                        style = MaterialTheme.typography.bodyMedium,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        color = MaterialTheme.colorScheme.onSurface,
+                        modifier = Modifier.weight(1f)
+                    )
+
+                    Spacer(modifier = Modifier.width(8.dp))
+
+                    TypeBadge(contentType = record.parsedContentType)
+                }
 
                 Text(
                     text = TimeFormatter.formatRelative(record.timestamp),

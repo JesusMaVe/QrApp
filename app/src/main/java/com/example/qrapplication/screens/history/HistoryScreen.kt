@@ -47,8 +47,18 @@ fun HistoryScreen(
             modifier = Modifier.fillMaxSize()
         )
     } else {
-        LazyColumn(modifier = modifier) {
-            items(scans, key = { it.id }) { record ->
+        LazyColumn(
+            modifier = modifier
+                .fillMaxSize()
+                .padding(horizontal = 16.dp)
+        ) {
+            // Use 'items' with key parameter for stable identity
+            // This prevents unnecessary recompositions when list changes
+            items(
+                items = scans,
+                key = { record -> record.id }
+            ) { record ->
+                // Create dismiss state with remember to preserve across recompositions
                 val dismissState = rememberSwipeToDismissBoxState(
                     confirmValueChange = { value ->
                         if (value == SwipeToDismissBoxValue.EndToStart) {

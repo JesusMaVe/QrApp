@@ -2,7 +2,7 @@ package com.example.qrapplication.screens.scanner
 
 import android.content.Intent
 import android.net.Uri
-import android.os.Vibrator
+import android.os.VibratorManager
 import android.provider.Settings
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -16,6 +16,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Bolt
 import androidx.compose.material.icons.filled.FlashlightOff
@@ -56,10 +57,9 @@ import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.accompanist.permissions.isGranted
 import com.google.accompanist.permissions.rememberPermissionState
 import com.google.accompanist.permissions.shouldShowRationale
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import androidx.compose.runtime.rememberCoroutineScope
 
 @OptIn(ExperimentalPermissionsApi::class)
 @Composable
@@ -72,6 +72,7 @@ fun ScannerScreen(
     val isFlashOn by viewModel.isFlashlightOn.collectAsState()
     val isBurstMode by viewModel.isBurstMode.collectAsState()
     val trackingState by viewModel.trackingState.collectAsState()
+    val coroutineScope = rememberCoroutineScope()
 
     val cameraPermissionState = rememberPermissionState(android.Manifest.permission.CAMERA)
 
@@ -114,7 +115,7 @@ fun ScannerScreen(
             val successState = state as ScannerState.Success
             val content = successState.barcode.rawValue ?: return@LaunchedEffect
             
-            CoroutineScope(Dispatchers.IO).launch {
+            coroutineScope.launch {
                 repository.saveScan(
                     ScanRecord(
                         content = content,
@@ -178,7 +179,7 @@ fun ScannerScreen(
                     onAction = { barcode, contentType ->
                         val content = barcode.rawValue ?: return@ScannerContent
                         try {
-                            CoroutineScope(Dispatchers.IO).launch {
+                            coroutineScope.launch {
                                 repository.saveScan(
                                     ScanRecord(
                                         content = content,
@@ -200,7 +201,14 @@ fun ScannerScreen(
 
 private fun vibrate(context: android.content.Context) {
     try {
-        val vibrator = context.getSystemService(android.content.Context.VIBRATOR_SERVICE) as? Vibrator
+        @Suppress("DEPRECATION")
+        val vibrator = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.S) {
+            val vibratorManager = context.getSystemService(android.content.Context.VIBRATOR_MANAGER_SERVICE) as? android.os.VibratorManager
+            vibratorManager?.defaultVibrator
+        } else {
+            context.getSystemService(android.content.Context.VIBRATOR_SERVICE) as? android.os.Vibrator
+        }
+
         if (vibrator != null && vibrator.hasVibrator()) {
             if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
                 vibrator.vibrate(android.os.VibrationEffect.createOneShot(50, android.os.VibrationEffect.DEFAULT_AMPLITUDE))
@@ -237,6 +245,23 @@ private fun ScannerContent(
             trackingState = trackingState
         )
 
+        // Top gradient for better UI visibility
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(
+                    Brush.verticalGradient(
+                        colors = listOf(
+                            Color.Black.copy(alpha = 0.5f),
+                            Color.Transparent,
+                            Color.Transparent,
+                            Color.Black.copy(alpha = 0.5f)
+                        )
+                    )
+                )
+        )
+
+        // Action buttons row
         Row(
             modifier = Modifier
                 .align(Alignment.TopEnd)
@@ -246,39 +271,55 @@ private fun ScannerContent(
             // Gallery Button
             IconButton(
                 onClick = onLaunchGallery,
-                modifier = Modifier.size(48.dp),
+                modifier = Modifier
+                    .size(48.dp)
+                    .background(
+                        Color.White.copy(alpha = 0.15f),
+                        MaterialTheme.shapes.medium
+                    ),
                 colors = IconButtonDefaults.iconButtonColors(
-                    containerColor = Color.Black.copy(alpha = 0.3f),
+                    containerColor = Color.Transparent,
                     contentColor = Color.White
                 )
             ) {
                 Icon(
                     imageVector = Icons.Default.Image,
-                    contentDescription = "Seleccionar de galeria"
+                    contentDescription = "Galería"
                 )
             }
 
             // Burst Mode Toggle
             IconButton(
                 onClick = onToggleBurstMode,
-                modifier = Modifier.size(48.dp),
+                modifier = Modifier
+                    .size(48.dp)
+                    .background(
+                        if (isBurstMode) MaterialTheme.colorScheme.primary.copy(alpha = 0.8f)
+                        else Color.White.copy(alpha = 0.15f),
+                        MaterialTheme.shapes.medium
+                    ),
                 colors = IconButtonDefaults.iconButtonColors(
-                    containerColor = if (isBurstMode) Color.Green.copy(alpha = 0.7f) else Color.Black.copy(alpha = 0.3f),
+                    containerColor = Color.Transparent,
                     contentColor = Color.White
                 )
             ) {
                 Icon(
                     imageVector = Icons.Default.Bolt,
-                    contentDescription = "Modo rafaga"
+                    contentDescription = "Modo ráfaga"
                 )
             }
 
             // Flashlight Toggle
             IconButton(
                 onClick = onToggleFlash,
-                modifier = Modifier.size(48.dp),
+                modifier = Modifier
+                    .size(48.dp)
+                    .background(
+                        Color.White.copy(alpha = 0.15f),
+                        MaterialTheme.shapes.medium
+                    ),
                 colors = IconButtonDefaults.iconButtonColors(
-                    containerColor = Color.Black.copy(alpha = 0.3f),
+                    containerColor = Color.Transparent,
                     contentColor = Color.White
                 )
             ) {
@@ -289,12 +330,13 @@ private fun ScannerContent(
             }
         }
 
+        // Hint text
         val hintText = when {
-            isBurstMode && trackingState.isTracking && trackingState.isInFrame -> "Guardando..."
-            trackingState.isTracking && !trackingState.isInFrame -> "Mueve el codigo al marco"
-            trackingState.isTracking && trackingState.isInFrame -> "Codigo detectado"
-            isBurstMode -> "Modo rafaga activo"
-            else -> "Encuadra el codigo para escanear"
+            isBurstMode && trackingState.isTracking && trackingState.isInFrame -> "Escaneando..."
+            trackingState.isTracking && !trackingState.isInFrame -> "Mueve el código al marco"
+            trackingState.isTracking && trackingState.isInFrame -> "Código detectado"
+            isBurstMode -> "Modo ráfaga activo"
+            else -> "Apunta al código QR"
         }
 
         Text(
@@ -304,9 +346,12 @@ private fun ScannerContent(
             textAlign = TextAlign.Center,
             modifier = Modifier
                 .align(Alignment.BottomCenter)
-                .padding(bottom = 100.dp)
-                .background(Color.Black.copy(alpha = 0.5f), MaterialTheme.shapes.medium)
-                .padding(horizontal = 16.dp, vertical = 8.dp)
+                .padding(bottom = 80.dp)
+                .background(
+                    Color.Black.copy(alpha = 0.6f),
+                    MaterialTheme.shapes.large
+                )
+                .padding(horizontal = 20.dp, vertical = 10.dp)
         )
 
         if (state is ScannerState.Success && !isBurstMode) {

@@ -33,7 +33,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -49,10 +51,12 @@ import com.example.qrapplication.barcode.ImageAnalyzer
 import com.example.qrapplication.barcode.ScannerState
 import com.example.qrapplication.barcode.TrackingState
 import com.example.qrapplication.data.ScanRepository
+import com.example.qrapplication.model.QrFolder
 import com.example.qrapplication.model.ScanRecord
 import com.example.qrapplication.scanner.components.CameraPreview
 import com.example.qrapplication.scanner.components.ScanOverlay
 import com.example.qrapplication.screens.scanner.components.ResultBottomSheet
+import com.example.qrapplication.screens.history.components.FolderDialog
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.accompanist.permissions.isGranted
 import com.google.accompanist.permissions.rememberPermissionState
@@ -73,6 +77,14 @@ fun ScannerScreen(
     val isBurstMode by viewModel.isBurstMode.collectAsState()
     val trackingState by viewModel.trackingState.collectAsState()
     val coroutineScope = rememberCoroutineScope()
+
+    // Folder selection state
+    var showFolderDialog by remember { mutableStateOf(false) }
+    var pendingScanContent by remember { mutableStateOf<String?>(null) }
+    var pendingScanContentType by remember { mutableStateOf<com.example.qrapplication.model.ContentType?>(null) }
+
+    val folders by remember { mutableStateOf(repository.folders) }
+    val foldersSnapshot by repository.folders.collectAsState(initial = emptyList())
 
     val cameraPermissionState = rememberPermissionState(android.Manifest.permission.CAMERA)
 
@@ -178,24 +190,51 @@ fun ScannerScreen(
                     },
                     onAction = { barcode, contentType ->
                         val content = barcode.rawValue ?: return@ScannerContent
-                        try {
-                            coroutineScope.launch {
-                                repository.saveScan(
-                                    ScanRecord(
-                                        content = content,
-                                        contentType = contentType.name
-                                    )
-                                )
-                            }
-                            ActionHandler.execute(context, content, contentType)
-                        } catch (e: Exception) {
-                            android.util.Log.e("ScannerScreen", "Action failed", e)
-                        }
-                        viewModel.reset()
+                        // Store pending scan and show folder dialog
+                        pendingScanContent = content
+                        pendingScanContentType = contentType
+                        showFolderDialog = true
                     }
                 )
             }
         }
+    }
+
+    // Folder selection dialog
+    if (showFolderDialog && pendingScanContent != null && pendingScanContentType != null) {
+        FolderDialog(
+            folders = foldersSnapshot,
+            onFolderSelected = { folder ->
+                val content = pendingScanContent!!
+                val contentType = pendingScanContentType!!
+                coroutineScope.launch {
+                    repository.saveScan(
+                        ScanRecord(
+                            content = content,
+                            contentType = contentType.name,
+                            folderId = folder?.id
+                        )
+                    )
+                    // Execute original action
+                    ActionHandler.execute(context, content, contentType)
+                }
+                viewModel.reset()
+                showFolderDialog = false
+                pendingScanContent = null
+                pendingScanContentType = null
+            },
+            onCreateFolder = { name ->
+                coroutineScope.launch {
+                    repository.createFolder(name)
+                }
+            },
+            onDismiss = {
+                showFolderDialog = false
+                pendingScanContent = null
+                pendingScanContentType = null
+                viewModel.reset()
+            }
+        )
     }
 }
 

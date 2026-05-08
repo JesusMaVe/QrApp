@@ -23,6 +23,12 @@ data class TrackingState(
     val isInFrame: Boolean = false
 )
 
+data class ScannedBurstItem(
+    val content: String,
+    val contentType: ContentType,
+    val timestamp: Long = System.currentTimeMillis()
+)
+
 class BarcodeScannerViewModel : ViewModel() {
 
     private val _state = MutableStateFlow<ScannerState>(ScannerState.Idle)
@@ -39,6 +45,12 @@ class BarcodeScannerViewModel : ViewModel() {
 
     private val _trackingState = MutableStateFlow(TrackingState())
     val trackingState: StateFlow<TrackingState> = _trackingState.asStateFlow()
+
+    private val _burstScans = MutableStateFlow<List<ScannedBurstItem>>(emptyList())
+    val burstScans: StateFlow<List<ScannedBurstItem>> = _burstScans.asStateFlow()
+
+    private val _showBurstReview = MutableStateFlow(false)
+    val showBurstReview: StateFlow<Boolean> = _showBurstReview.asStateFlow()
 
     val frameBounds = AtomicReference(RectF(0.3f, 0.3f, 0.7f, 0.7f))
 
@@ -82,7 +94,26 @@ class BarcodeScannerViewModel : ViewModel() {
         lastScannedValue = rawValue
 
         val contentType = ContentTypeDetector.detect(barcode)
+
+        // Track burst scans
+        if (_isBurstMode.value) {
+            val newItem = ScannedBurstItem(
+                content = rawValue,
+                contentType = contentType
+            )
+            _burstScans.update { listOf(newItem) + it }
+        }
+
         _state.update { ScannerState.Success(barcode, contentType) }
+    }
+
+    fun finishBurstMode() {
+        _showBurstReview.value = true
+    }
+
+    fun clearBurstScans() {
+        _burstScans.value = emptyList()
+        _showBurstReview.value = false
     }
 
     fun updateFrameBounds(normalizedRect: RectF) {

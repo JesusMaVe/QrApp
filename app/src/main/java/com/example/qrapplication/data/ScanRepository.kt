@@ -6,6 +6,7 @@ import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
+import com.example.qrapplication.model.QrFolder
 import com.example.qrapplication.model.ScanRecord
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -27,6 +28,11 @@ class ScanRepository(context: Context) {
     private val dataStore = context.dataStore
 
     private val historyKey = stringPreferencesKey("scan_history_list")
+    private val foldersKey = stringPreferencesKey("qr_folders_list")
+
+    // Folders state
+    private val _foldersFlow = MutableStateFlow<List<QrFolder>>(emptyList())
+    val folders: StateFlow<List<QrFolder>> = _foldersFlow.asStateFlow()
 
     // Use dedicated scope instead of GlobalScope
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
@@ -59,6 +65,13 @@ class ScanRepository(context: Context) {
                 cacheReference.set(loadedList)
                 rebuildContentIndex(loadedList)
                 _scansFlow.value = loadedList
+
+                // Load folders
+                val foldersJson = preferences[foldersKey] ?: "[]"
+                val loadedFolders = runCatching {
+                    Json.decodeFromString<List<QrFolder>>(foldersJson)
+                }.getOrDefault(emptyList())
+                _foldersFlow.value = loadedFolders
             }
         }
     }
@@ -153,6 +166,66 @@ class ScanRepository(context: Context) {
             _scansFlow.value = emptyList()
 
             preferences.remove(historyKey)
+        }
+    }
+
+    suspend fun createFolder(name: String) {
+        dataStore.edit { preferences ->
+            val currentJson = preferences[foldersKey] ?: "[]"
+            val currentList = runCatching {
+                Json.decodeFromString<List<QrFolder>>(currentJson)
+            }.getOrDefault(emptyList()).toMutableList()
+
+            currentList.add(QrFolder(name = name))
+            preferences[foldersKey] = Json.encodeToString(currentList)
+            _foldersFlow.value = currentList
+        }
+    }
+
+    suspend fun deleteFolder(id: String) {
+        dataStore.edit { preferences ->
+            val foldersJson = preferences[foldersKey] ?: "[]"
+            val foldersList = runCatching {
+                Json.decodeFromString<List<QrFolder>>(foldersJson)
+            }.getOrDefault(emptyList()).toMutableList()
+
+            foldersList.removeAll { it.id == id }
+            preferences[foldersKey] = Json.encodeToString(foldersList)
+            _foldersFlow.value = foldersList
+        }
+
+        // Mover QR de esta carpeta a "sin carpeta"
+        val currentList = cacheReference.get()
+        val updatedList = currentList.map { scan ->
+            if (scan.folderId == id) scan.copy(folderId = null) else scan
+        }
+        cacheReference.set(updatedList)
+        _scansFlow.value = updatedList
+
+        dataStore.edit { preferences ->
+            preferences[historyKey] = Json.encodeToString(updatedList)
+        }
+    }
+
+    suspend fun moveScanToFolder(scanId: String, folderId: String?) {
+        dataStore.edit { preferences ->
+            val currentList = cacheReference.get().ifEmpty {
+                preferences[historyKey]?.let { json ->
+                    runCatching {
+                        Json.decodeFromString<List<ScanRecord>>(json)
+                    }.getOrDefault(emptyList())
+                } ?: emptyList()
+            }
+
+            val updatedList = currentList.map { scan ->
+                if (scan.id == scanId) scan.copy(folderId = folderId) else scan
+            }
+
+            cacheReference.set(updatedList)
+            rebuildContentIndex(updatedList)
+            _scansFlow.value = updatedList
+
+            preferences[historyKey] = Json.encodeToString(updatedList)
         }
     }
 }

@@ -51,4 +51,20 @@ class HistoryViewModel(
             repository.moveScanToFolder(scanId, folderId)
         }
     }
+
+    fun renameFolder(id: String, newName: String) {
+        viewModelScope.launch {
+            repository.renameFolder(id, newName)
+        }
+    }
+
+    fun deleteFolder(id: String) {
+        viewModelScope.launch {
+            repository.deleteFolder(id)
+        }
+    }
+
+    fun getScansCountInFolder(folderId: String): Int {
+        return repository.getScansCountInFolder(folderId)
+    }
 }

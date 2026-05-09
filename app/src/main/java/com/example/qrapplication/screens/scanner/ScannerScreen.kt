@@ -9,6 +9,7 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -57,6 +58,7 @@ import com.example.qrapplication.scanner.components.CameraPreview
 import com.example.qrapplication.scanner.components.ScanOverlay
 import com.example.qrapplication.screens.scanner.components.ResultBottomSheet
 import com.example.qrapplication.screens.history.components.FolderDialog
+import com.example.qrapplication.ui.theme.ScannerColors
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.accompanist.permissions.isGranted
 import com.google.accompanist.permissions.rememberPermissionState
@@ -228,6 +230,8 @@ fun ScannerScreen(
                     repository.createFolder(name)
                 }
             },
+            onRenameFolder = { },
+            onDeleteFolder = { },
             onDismiss = {
                 showFolderDialog = false
                 pendingScanContent = null
@@ -274,6 +278,25 @@ private fun ScannerContent(
     onDismissResult: () -> Unit,
     onAction: (com.google.mlkit.vision.barcode.common.Barcode, com.example.qrapplication.model.ContentType) -> Unit
 ) {
+    val isDark = isSystemInDarkTheme()
+    val iconButtonBg = if (isDark) ScannerColors.IconButtonBgDark else ScannerColors.IconButtonBgLight
+    val hintBg = if (isDark) ScannerColors.HintBgDark else ScannerColors.HintBgLight
+    val overlayGradient = if (isDark) {
+        listOf(
+            ScannerColors.OverlayDark.copy(alpha = 0.7f),
+            Color.Transparent,
+            Color.Transparent,
+            ScannerColors.OverlayDark.copy(alpha = 0.7f)
+        )
+    } else {
+        listOf(
+            Color.Black.copy(alpha = 0.5f),
+            Color.Transparent,
+            Color.Transparent,
+            Color.Black.copy(alpha = 0.5f)
+        )
+    }
+    
     Box(modifier = Modifier.fillMaxSize()) {
         CameraPreview(
             onBarcodeDetected = onBarcodeDetected,
@@ -290,12 +313,7 @@ private fun ScannerContent(
                 .fillMaxSize()
                 .background(
                     Brush.verticalGradient(
-                        colors = listOf(
-                            Color.Black.copy(alpha = 0.5f),
-                            Color.Transparent,
-                            Color.Transparent,
-                            Color.Black.copy(alpha = 0.5f)
-                        )
+                        colors = overlayGradient
                     )
                 )
         )
@@ -313,7 +331,7 @@ private fun ScannerContent(
                 modifier = Modifier
                     .size(48.dp)
                     .background(
-                        Color.White.copy(alpha = 0.15f),
+                        iconButtonBg,
                         MaterialTheme.shapes.medium
                     ),
                 colors = IconButtonDefaults.iconButtonColors(
@@ -334,7 +352,7 @@ private fun ScannerContent(
                     .size(48.dp)
                     .background(
                         if (isBurstMode) MaterialTheme.colorScheme.primary.copy(alpha = 0.8f)
-                        else Color.White.copy(alpha = 0.15f),
+                        else iconButtonBg,
                         MaterialTheme.shapes.medium
                     ),
                 colors = IconButtonDefaults.iconButtonColors(
@@ -354,7 +372,7 @@ private fun ScannerContent(
                 modifier = Modifier
                     .size(48.dp)
                     .background(
-                        Color.White.copy(alpha = 0.15f),
+                        iconButtonBg,
                         MaterialTheme.shapes.medium
                     ),
                 colors = IconButtonDefaults.iconButtonColors(
@@ -387,7 +405,7 @@ private fun ScannerContent(
                 .align(Alignment.BottomCenter)
                 .padding(bottom = 80.dp)
                 .background(
-                    Color.Black.copy(alpha = 0.6f),
+                    hintBg,
                     MaterialTheme.shapes.large
                 )
                 .padding(horizontal = 20.dp, vertical = 10.dp)

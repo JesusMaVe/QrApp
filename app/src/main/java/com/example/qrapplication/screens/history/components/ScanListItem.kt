@@ -4,6 +4,7 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -45,9 +46,10 @@ fun ScanListItem(
     folderName: String? = null,
     modifier: Modifier = Modifier
 ) {
-    val backgroundColor = ContentTypeColors.getBackgroundColor(record.parsedContentType)
-    val borderColor = ContentTypeColors.getBorderColor(record.parsedContentType)
-    val accentColor = ContentTypeColors.getAccentColor(record.parsedContentType)
+    val isDark = isSystemInDarkTheme()
+    val backgroundColor = ContentTypeColors.getBackgroundColor(record.parsedContentType, isDark)
+    val borderColor = ContentTypeColors.getBorderColor(record.parsedContentType, isDark)
+    val accentColor = ContentTypeColors.getAccentColor(record.parsedContentType, isDark)
 
     Surface(
         modifier = modifier

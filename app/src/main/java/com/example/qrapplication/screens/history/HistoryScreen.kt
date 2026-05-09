@@ -1,11 +1,11 @@
 package com.example.qrapplication.screens.history
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -37,9 +37,12 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.qrapplication.barcode.HapticManager
 import com.example.qrapplication.data.ScanRepository
+import com.example.qrapplication.model.QrFolder
 import com.example.qrapplication.model.ScanRecord
+import com.example.qrapplication.screens.history.components.DeleteFolderDialog
 import com.example.qrapplication.screens.history.components.FolderButton
 import com.example.qrapplication.screens.history.components.FolderDialog
+import com.example.qrapplication.screens.history.components.RenameFolderDialog
 import com.example.qrapplication.screens.history.components.ScanListItem
 import com.example.qrapplication.ui.components.EmptyState
 
@@ -67,15 +70,20 @@ fun HistoryScreen(
         folders.associateBy { it.id }
     }
 
+    // Estado para diálogos de edición de carpeta
+    var folderToRename by remember { mutableStateOf<QrFolder?>(null) }
+    var folderToDelete by remember { mutableStateOf<QrFolder?>(null) }
+
+    // Estado para mover QR a carpeta (long press)
+    var showMoveDialogFor by remember { mutableStateOf<ScanRecord?>(null) }
+
     // Computar tabs dinámicamente
     val tabs = remember(folders) {
         buildList {
             add("Todas")
             add("Sin carpeta")
-            // Agregar carpetas (máximo 3 adicionales para no exceder 5)
             val visibleFolders = folders.take(3)
             addAll(visibleFolders.map { it.name })
-            // Si hay más carpetas, agregar indicador
             if (folders.size > 3) {
                 add("+${folders.size - 3}")
             }
@@ -85,23 +93,19 @@ fun HistoryScreen(
     // Computar QRs filtrados según tab
     val filteredScans = remember(scans, selectedTabIndex, folders) {
         when (selectedTabIndex) {
-            0 -> scans // Todas
-            1 -> scans.filter { it.folderId == null } // Sin carpeta
+            0 -> scans
+            1 -> scans.filter { it.folderId == null }
             else -> {
                 val folderIndex = selectedTabIndex - 2
                 if (folderIndex < folders.size) {
                     val folder = folders[folderIndex]
                     scans.filter { it.folderId == folder.id }
                 } else {
-                    // "+X" - mostrar todas
                     scans
                 }
             }
         }
     }
-
-    // Estado para mover QR a carpeta (long press)
-    var showMoveDialogFor by remember { mutableStateOf<ScanRecord?>(null) }
 
     Scaffold(
         topBar = {
@@ -120,7 +124,7 @@ fun HistoryScreen(
                 ) {
                     tabs.forEachIndexed { index, title ->
                         val count = when (index) {
-                            0 -> null // Todas - sin count
+                            0 -> null
                             1 -> scans.count { it.folderId == null }.takeIf { it > 0 }
                             else -> {
                                 val folderIndex = index - 2
@@ -135,23 +139,22 @@ fun HistoryScreen(
                             selected = selectedTabIndex == index,
                             onClick = {
                                 if (title.startsWith("+")) {
-                                    // Abrir diálogo de selección
                                     showFolderDialog = true
                                 } else {
                                     selectedTabIndex = index
                                 }
-                            },
-                            text = {
-                                Text(
-                                    text = tabTitle,
-                                    fontWeight = if (selectedTabIndex == index) FontWeight.Bold else FontWeight.Normal,
-                                    color = if (selectedTabIndex == index)
-                                        MaterialTheme.colorScheme.primary
-                                    else
-                                        MaterialTheme.colorScheme.onSurfaceVariant
-                                )
                             }
-                        )
+                        ) {
+                            Text(
+                                text = tabTitle,
+                                fontWeight = if (selectedTabIndex == index) FontWeight.Bold else FontWeight.Normal,
+                                color = if (selectedTabIndex == index)
+                                    MaterialTheme.colorScheme.primary
+                                else
+                                    MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.padding(vertical = 12.dp, horizontal = 4.dp)
+                            )
+                        }
                     }
                 }
             }
@@ -164,7 +167,7 @@ fun HistoryScreen(
                 else -> "Carpeta vacía"
             }
             val emptyDesc = when (selectedTabIndex) {
-                0 -> "Los códigos que escanees aparecerán aquí para consulta rápida"
+                0 -> "Los códigos que escanees aparecerán aquí"
                 1 -> "Los QRs sin carpeta aparecerán aquí"
                 else -> "Mueve QRs a esta carpeta con long press"
             }
@@ -229,11 +232,25 @@ fun HistoryScreen(
             onCreateFolder = { name ->
                 viewModel.createFolder(name)
             },
+            onRenameFolder = { folder ->
+                folderToRename = folder
+                showMoveDialogFor = null
+            },
+            onDeleteFolder = { folder ->
+                val scansCount = viewModel.getScansCountInFolder(folder.id)
+                if (scansCount > 0) {
+                    folderToDelete = folder
+                } else {
+                    viewModel.deleteFolder(folder.id)
+                    HapticManager.vibrate(context)
+                }
+                showMoveDialogFor = null
+            },
             onDismiss = { showMoveDialogFor = null }
         )
     }
 
-    // Diálogo original para gestión de carpetas
+    // Diálogo principal para gestión de carpetas
     if (showFolderDialog) {
         FolderDialog(
             folders = folders,
@@ -243,7 +260,51 @@ fun HistoryScreen(
             onCreateFolder = { name ->
                 viewModel.createFolder(name)
             },
+            onRenameFolder = { folder ->
+                folderToRename = folder
+                showFolderDialog = false
+            },
+            onDeleteFolder = { folder ->
+                val scansCount = viewModel.getScansCountInFolder(folder.id)
+                if (scansCount > 0) {
+                    folderToDelete = folder
+                } else {
+                    viewModel.deleteFolder(folder.id)
+                    HapticManager.vibrate(context)
+                }
+                showFolderDialog = false
+            },
             onDismiss = { showFolderDialog = false }
+        )
+    }
+
+    // Diálogo para renombrar carpeta
+    folderToRename?.let { folder ->
+        RenameFolderDialog(
+            currentName = folder.name,
+            onRename = { newName ->
+                viewModel.renameFolder(folder.id, newName)
+            },
+            onDismiss = { folderToRename = null }
+        )
+    }
+
+    // Diálogo para confirmar eliminación de carpeta con QRs
+    folderToDelete?.let { folder ->
+        val scansCount = viewModel.getScansCountInFolder(folder.id)
+        DeleteFolderDialog(
+            folderName = folder.name,
+            scansCount = scansCount,
+            onConfirm = {
+                viewModel.deleteFolder(folder.id)
+                HapticManager.vibrate(context)
+                val folderIndex = folders.indexOf(folder)
+                if (folderIndex >= 0 && selectedTabIndex == folderIndex + 2) {
+                    selectedTabIndex = 0
+                }
+                folderToDelete = null
+            },
+            onDismiss = { folderToDelete = null }
         )
     }
 }
@@ -251,10 +312,11 @@ fun HistoryScreen(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun DismissBackground(dismissState: androidx.compose.material3.SwipeToDismissBoxState) {
+    val isDark = isSystemInDarkTheme()
     val color = if (dismissState.dismissDirection == SwipeToDismissBoxValue.EndToStart) {
-        Color.Red.copy(alpha = 0.7f)
+        if (isDark) Color(0xFFB71C1C).copy(alpha = 0.8f) else Color.Red.copy(alpha = 0.7f)
     } else {
-        Color.Transparent
+        Color(0x00000000)
     }
 
     Box(

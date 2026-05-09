@@ -10,6 +10,8 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.CreateNewFolder
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Folder
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Icon
@@ -33,6 +35,8 @@ fun FolderDialog(
     folders: List<QrFolder>,
     onFolderSelected: (QrFolder?) -> Unit,
     onCreateFolder: (String) -> Unit,
+    onRenameFolder: (QrFolder) -> Unit,
+    onDeleteFolder: (QrFolder) -> Unit,
     onDismiss: () -> Unit
 ) {
     var showCreateField by remember { mutableStateOf(false) }
@@ -40,7 +44,7 @@ fun FolderDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Seleccionar carpeta") },
+        title = { Text("Carpetas") },
         text = {
             Column {
                 // Opción "Sin carpeta"
@@ -63,13 +67,13 @@ fun FolderDialog(
                     )
                 }
 
-                // Lista de carpetas
+                // Lista de carpetas con opciones
                 folders.forEach { folder ->
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
                             .clickable { onFolderSelected(folder) }
-                            .padding(vertical = 12.dp),
+                            .padding(vertical = 8.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Icon(
@@ -80,8 +84,23 @@ fun FolderDialog(
                         Spacer(modifier = Modifier.width(12.dp))
                         Text(
                             text = folder.name,
-                            style = MaterialTheme.typography.bodyMedium
+                            style = MaterialTheme.typography.bodyMedium,
+                            modifier = Modifier.weight(1f)
                         )
+                        IconButton(onClick = { onRenameFolder(folder) }) {
+                            Icon(
+                                imageVector = Icons.Default.Edit,
+                                contentDescription = "Renombrar",
+                                tint = MaterialTheme.colorScheme.primary
+                            )
+                        }
+                        IconButton(onClick = { onDeleteFolder(folder) }) {
+                            Icon(
+                                imageVector = Icons.Default.Delete,
+                                contentDescription = "Eliminar",
+                                tint = MaterialTheme.colorScheme.error
+                            )
+                        }
                     }
                 }
 
@@ -127,7 +146,7 @@ fun FolderDialog(
         confirmButton = {},
         dismissButton = {
             TextButton(onClick = onDismiss) {
-                Text("Cancelar")
+                Text("Cerrar")
             }
         }
     )

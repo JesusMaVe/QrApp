@@ -1,6 +1,7 @@
 package com.example.qrapplication.screens.history.components
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -32,8 +33,9 @@ fun TypeBadge(
     contentType: ContentType,
     modifier: Modifier = Modifier
 ) {
-    val accentColor = ContentTypeColors.getAccentColor(contentType)
-    val backgroundColor = accentColor.copy(alpha = 0.1f)
+    val isDark = isSystemInDarkTheme()
+    val accentColor = ContentTypeColors.getAccentColor(contentType, isDark)
+    val backgroundColor = accentColor.copy(alpha = if (isDark) 0.15f else 0.1f)
 
     Box(
         modifier = modifier

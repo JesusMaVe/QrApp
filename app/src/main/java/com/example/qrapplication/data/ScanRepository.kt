@@ -228,6 +228,26 @@ class ScanRepository(context: Context) {
             preferences[historyKey] = Json.encodeToString(updatedList)
         }
     }
+
+    suspend fun renameFolder(id: String, newName: String) {
+        dataStore.edit { preferences ->
+            val foldersJson = preferences[foldersKey] ?: "[]"
+            val foldersList = runCatching {
+                Json.decodeFromString<List<QrFolder>>(foldersJson)
+            }.getOrDefault(emptyList()).toMutableList()
+
+            val index = foldersList.indexOfFirst { it.id == id }
+            if (index >= 0) {
+                foldersList[index] = foldersList[index].copy(name = newName)
+            }
+            preferences[foldersKey] = Json.encodeToString(foldersList)
+            _foldersFlow.value = foldersList
+        }
+    }
+
+    fun getScansCountInFolder(folderId: String): Int {
+        return cacheReference.get().count { it.folderId == folderId }
+    }
 }
 
 // Extension to use empty list as default

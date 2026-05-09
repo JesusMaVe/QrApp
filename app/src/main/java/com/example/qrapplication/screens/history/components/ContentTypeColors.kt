@@ -2,44 +2,86 @@ package com.example.qrapplication.screens.history.components
 
 import androidx.compose.ui.graphics.Color
 import com.example.qrapplication.model.ContentType
+import com.example.qrapplication.ui.theme.ContentTypeColorsDark
+import com.example.qrapplication.ui.theme.ContentTypeColorsLight
 
 object ContentTypeColors {
-    fun getBackgroundColor(type: ContentType): Color {
-        return when (type) {
-            ContentType.URL -> Color(0xFFE3F2FD)
-            ContentType.EMAIL -> Color(0xFFE8F5E9)
-            ContentType.PHONE -> Color(0xFFFFF3E0)
-            ContentType.TEXT -> Color(0xFFF5F5F5)
-            ContentType.PRODUCT -> Color(0xFFF3E5F5)
-            ContentType.WIFI -> Color(0xFFE0F7FA)
-            ContentType.CONTACT -> Color(0xFFFFFDE7)
-            ContentType.UNKNOWN -> Color(0xFFFAFAFA)
+
+    fun getBackgroundColor(type: ContentType, isDark: Boolean): Color {
+        return if (isDark) {
+            when (type) {
+                ContentType.URL -> ContentTypeColorsDark.URL_BG
+                ContentType.EMAIL -> ContentTypeColorsDark.EMAIL_BG
+                ContentType.PHONE -> ContentTypeColorsDark.PHONE_BG
+                ContentType.TEXT -> ContentTypeColorsDark.TEXT_BG
+                ContentType.PRODUCT -> ContentTypeColorsDark.PRODUCT_BG
+                ContentType.WIFI -> ContentTypeColorsDark.WIFI_BG
+                ContentType.CONTACT -> ContentTypeColorsDark.CONTACT_BG
+                ContentType.UNKNOWN -> ContentTypeColorsDark.UNKNOWN_BG
+            }
+        } else {
+            when (type) {
+                ContentType.URL -> ContentTypeColorsLight.URL_BG
+                ContentType.EMAIL -> ContentTypeColorsLight.EMAIL_BG
+                ContentType.PHONE -> ContentTypeColorsLight.PHONE_BG
+                ContentType.TEXT -> ContentTypeColorsLight.TEXT_BG
+                ContentType.PRODUCT -> ContentTypeColorsLight.PRODUCT_BG
+                ContentType.WIFI -> ContentTypeColorsLight.WIFI_BG
+                ContentType.CONTACT -> ContentTypeColorsLight.CONTACT_BG
+                ContentType.UNKNOWN -> ContentTypeColorsLight.UNKNOWN_BG
+            }
         }
     }
 
-    fun getBorderColor(type: ContentType): Color {
-        return when (type) {
-            ContentType.URL -> Color(0xFF90CAF9)
-            ContentType.EMAIL -> Color(0xFFA5D6A7)
-            ContentType.PHONE -> Color(0xFFFFCC80)
-            ContentType.TEXT -> Color(0xFFE0E0E0)
-            ContentType.PRODUCT -> Color(0xFFCE93D8)
-            ContentType.WIFI -> Color(0xFF80DEEA)
-            ContentType.CONTACT -> Color(0xFFFFF59D)
-            ContentType.UNKNOWN -> Color(0xFFE0E0E0)
+    fun getBorderColor(type: ContentType, isDark: Boolean): Color {
+        return if (isDark) {
+            when (type) {
+                ContentType.URL -> ContentTypeColorsDark.URL_BORDER
+                ContentType.EMAIL -> ContentTypeColorsDark.EMAIL_BORDER
+                ContentType.PHONE -> ContentTypeColorsDark.PHONE_BORDER
+                ContentType.TEXT -> ContentTypeColorsDark.TEXT_BORDER
+                ContentType.PRODUCT -> ContentTypeColorsDark.PRODUCT_BORDER
+                ContentType.WIFI -> ContentTypeColorsDark.WIFI_BORDER
+                ContentType.CONTACT -> ContentTypeColorsDark.CONTACT_BORDER
+                ContentType.UNKNOWN -> ContentTypeColorsDark.UNKNOWN_BORDER
+            }
+        } else {
+            when (type) {
+                ContentType.URL -> ContentTypeColorsLight.URL_BORDER
+                ContentType.EMAIL -> ContentTypeColorsLight.EMAIL_BORDER
+                ContentType.PHONE -> ContentTypeColorsLight.PHONE_BORDER
+                ContentType.TEXT -> ContentTypeColorsLight.TEXT_BORDER
+                ContentType.PRODUCT -> ContentTypeColorsLight.PRODUCT_BORDER
+                ContentType.WIFI -> ContentTypeColorsLight.WIFI_BORDER
+                ContentType.CONTACT -> ContentTypeColorsLight.CONTACT_BORDER
+                ContentType.UNKNOWN -> ContentTypeColorsLight.UNKNOWN_BORDER
+            }
         }
     }
 
-    fun getAccentColor(type: ContentType): Color {
-        return when (type) {
-            ContentType.URL -> Color(0xFF1976D2)
-            ContentType.EMAIL -> Color(0xFF388E3C)
-            ContentType.PHONE -> Color(0xFFF57C00)
-            ContentType.TEXT -> Color(0xFF616161)
-            ContentType.PRODUCT -> Color(0xFF7B1FA2)
-            ContentType.WIFI -> Color(0xFF0097A7)
-            ContentType.CONTACT -> Color(0xFFFBC02D)
-            ContentType.UNKNOWN -> Color(0xFF757575)
+    fun getAccentColor(type: ContentType, isDark: Boolean): Color {
+        return if (isDark) {
+            when (type) {
+                ContentType.URL -> ContentTypeColorsDark.URL_ACCENT
+                ContentType.EMAIL -> ContentTypeColorsDark.EMAIL_ACCENT
+                ContentType.PHONE -> ContentTypeColorsDark.PHONE_ACCENT
+                ContentType.TEXT -> ContentTypeColorsDark.TEXT_ACCENT
+                ContentType.PRODUCT -> ContentTypeColorsDark.PRODUCT_ACCENT
+                ContentType.WIFI -> ContentTypeColorsDark.WIFI_ACCENT
+                ContentType.CONTACT -> ContentTypeColorsDark.CONTACT_ACCENT
+                ContentType.UNKNOWN -> ContentTypeColorsDark.UNKNOWN_ACCENT
+            }
+        } else {
+            when (type) {
+                ContentType.URL -> ContentTypeColorsLight.URL_ACCENT
+                ContentType.EMAIL -> ContentTypeColorsLight.EMAIL_ACCENT
+                ContentType.PHONE -> ContentTypeColorsLight.PHONE_ACCENT
+                ContentType.TEXT -> ContentTypeColorsLight.TEXT_ACCENT
+                ContentType.PRODUCT -> ContentTypeColorsLight.PRODUCT_ACCENT
+                ContentType.WIFI -> ContentTypeColorsLight.WIFI_ACCENT
+                ContentType.CONTACT -> ContentTypeColorsLight.CONTACT_ACCENT
+                ContentType.UNKNOWN -> ContentTypeColorsLight.UNKNOWN_ACCENT
+            }
         }
     }
 }
